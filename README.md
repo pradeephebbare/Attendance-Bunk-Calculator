@@ -6,10 +6,12 @@ A smart attendance tracker and bunk calculator for students.
 - Attendance dashboard
 - Safe bunk calculator
 - Analysis charts
-- Modern UI
+- Modern local web UI
 
 ## Run Locally
 
 pip install -r requirements.txt
 
-python -m streamlit run app_level3.py
+python app_level3.py
+
+Then open http://localhost:5000 in the browser.

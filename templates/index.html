@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BunkMeter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-wrap">
+          <div class="brand-mark">🎓</div>
+          <div>
+            <div class="brand-title">BunkMeter</div>
+            <div class="brand-subtitle">Attendance planner</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">Required attendance</div>
+          <div class="slider-wrap">
+            <input id="targetSlider" type="range" min="50" max="90" step="5" value="75" />
+            <div class="target-value" id="targetValue">75%</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">Add subject</div>
+          <div class="field-grid">
+            <input id="subjectName" type="text" placeholder="Subject name" />
+            <input id="attendedValue" type="number" min="0" max="500" value="45" />
+            <input id="totalValue" type="number" min="1" max="500" value="56" />
+            <button id="addSubjectBtn" class="primary-btn">Add subject</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">Upload CSV</div>
+          <label class="upload-box" for="csvUpload">
+            <span>Choose CSV file</span>
+            <input id="csvUpload" type="file" accept=".csv" />
+          </label>
+          <button id="sampleDataBtn" class="ghost-btn">Load sample data</button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">college attendance predictor</div>
+            <h1>Smart bunk analysis</h1>
+          </div>
+          <div class="top-badge" id="overallBadge">Safe</div>
+        </header>
+
+        <section class="stats-grid">
+          <div class="metric-card highlight">
+            <div class="metric-label">Overall attendance</div>
+            <div class="metric-value" id="overallAttendance">0%</div>
+            <div class="metric-foot" id="overallMeta">0 of 0 classes</div>
+          </div>
+          <div class="metric-card green">
+            <div class="metric-label">Safe skips</div>
+            <div class="metric-value" id="safeSkips">0</div>
+            <div class="metric-foot">Across all subjects</div>
+          </div>
+          <div class="metric-card red">
+            <div class="metric-label">Classes needed</div>
+            <div class="metric-value" id="classesNeeded">0</div>
+            <div class="metric-foot">To reach target</div>
+          </div>
+          <div class="metric-card blue">
+            <div class="metric-label">Subjects</div>
+            <div class="metric-value" id="subjectCount">0</div>
+            <div class="metric-foot" id="statusBreakdown">0 safe · 0 borderline</div>
+          </div>
+        </section>
+
+        <section class="chart-grid">
+          <div class="card chart-card wide-card">
+            <div class="card-header">
+              <h3>Attendance by subject</h3>
+            </div>
+            <canvas id="attendanceChart"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3>Status split</h3>
+            </div>
+            <canvas id="statusChart"></canvas>
+          </div>
+        </section>
+
+        <section class="card lower-card">
+          <div class="card-header">
+            <h3>Safe skips vs classes needed</h3>
+          </div>
+          <canvas id="skipChart"></canvas>
+        </section>
+
+        <section class="subjects-panel">
+          <div class="section-title-row">
+            <h3>Subject dashboard</h3>
+          </div>
+          <div id="subjectList" class="subject-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
