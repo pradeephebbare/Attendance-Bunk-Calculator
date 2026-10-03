@@ -7,6 +7,7 @@ const sampleSubjects = [
 
 const state = {
   target: 75,
+  theme: 'dark',
   subjects: [...sampleSubjects],
 };
 
@@ -341,11 +342,24 @@ function handleCsvUpload(event) {
   reader.readAsText(file);
 }
 
+function applyTheme() {
+  document.body.dataset.theme = state.theme;
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    themeToggle.textContent = state.theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+  }
+}
+
 function bindEvents() {
   document.getElementById('targetSlider').addEventListener('input', (event) => {
     state.target = Number(event.target.value);
     updateTargetLabel();
     renderApp();
+  });
+
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
   });
 
   document.getElementById('addSubjectBtn').addEventListener('click', addSubject);
@@ -357,6 +371,7 @@ function bindEvents() {
 }
 
 function init() {
+  applyTheme();
   updateTargetLabel();
   bindEvents();
   renderApp();
