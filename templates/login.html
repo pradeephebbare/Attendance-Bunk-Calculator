@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BunkMeter Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #07111d 0%, #10233b 100%);
+      }
+
+      .auth-shell {
+        width: min(420px, calc(100% - 32px));
+        background: rgba(10, 18, 28, 0.88);
+        border: 1px solid rgba(140, 160, 195, 0.18);
+        border-radius: 24px;
+        padding: 28px 24px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .auth-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .auth-brand-mark {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(110, 231, 216, 0.18), rgba(122, 168, 255, 0.18));
+        font-size: 1.7rem;
+      }
+
+      .auth-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+        margin: 0 0 10px;
+      }
+
+      .auth-subtitle {
+        color: #8ea8cc;
+        margin: 0 0 24px;
+      }
+
+      .auth-form {
+        display: grid;
+        gap: 14px;
+      }
+
+      .auth-form input {
+        width: 100%;
+        background: rgba(9, 15, 24, 0.9);
+        border: 1px solid rgba(140, 160, 195, 0.2);
+        border-radius: 12px;
+        color: #edf4ff;
+        padding: 12px 14px;
+      }
+
+      .auth-form button,
+      .google-btn {
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #7aa8ff, #6ee7d8);
+        color: #06131d;
+        font-weight: 800;
+        padding: 13px 14px;
+        cursor: pointer;
+      }
+
+      .google-btn {
+        width: 100%;
+        margin-top: 12px;
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+      }
+
+      .auth-meta {
+        margin-top: 18px;
+        color: #8ea8cc;
+        font-size: 0.84rem;
+      }
+
+      .auth-error {
+        min-height: 20px;
+        color: #f87171;
+        font-size: 0.82rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auth-shell">
+      <div class="auth-brand">
+        <div class="auth-brand-mark">🎓</div>
+        <div>
+          <div class="brand-title" style="font-size:1.3rem;">BunkMeter</div>
+        </div>
+      </div>
+
+      <h1 class="auth-title">Login</h1>
+      <p class="auth-subtitle">Continue to your attendance dashboard</p>
+
+      <form class="auth-form" id="loginForm">
+        <input id="emailInput" type="email" placeholder="Email" required />
+        <input id="passwordInput" type="password" placeholder="Password" required />
+        <button type="submit">Sign in</button>
+      </form>
+
+      <button id="googleLoginBtn" class="google-btn" type="button">Continue with Google</button>
+
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-meta">
+        
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const form = document.getElementById('loginForm');
+      const googleLoginBtn = document.getElementById('googleLoginBtn');
+      const emailInput = document.getElementById('emailInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const authError = document.getElementById('authError');
+
+      let client = null;
+
+      async function loadClient() {
+        const configResponse = await fetch('/api/config');
+        const config = await configResponse.json();
+
+        if (!config.supabase_url || !config.supabase_anon_key) {
+          throw new Error('Set SUPABASE_URL and SUPABASE_ANON_KEY in your environment before using login.');
+        }
+
+        client = window.supabase.createClient(config.supabase_url, config.supabase_anon_key);
+      }
+
+      async function syncSupabaseSessionToFlask(sessionData) {
+        if (!sessionData?.access_token) return false;
+
+        const response = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: sessionData.access_token,
+            user_email: sessionData.user?.email || sessionData.email || '',
+            email: sessionData.user?.email || sessionData.email || '',
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.ok) {
+          window.location.href = data.redirect || '/';
+          return true;
+        }
+
+        return false;
+      }
+
+      async function handleGoogleLogin() {
+        try {
+          if (!client) {
+            await loadClient();
+          }
+
+          const { error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: window.location.origin + '/',
+            },
+          });
+
+          if (error) {
+            throw error;
+          }
+        } catch (error) {
+          authError.textContent = error.message || 'Google sign-in failed.';
+        }
+      }
+
+      googleLoginBtn.addEventListener('click', handleGoogleLogin);
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        authError.textContent = '';
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!email || !password) {
+          authError.textContent = 'Please enter both email and password.';
+          return;
+        }
+
+        try {
+          if (!client) {
+            await loadClient();
+          }
+
+          const { data, error } = await client.auth.signInWithPassword({ email, password });
+          if (error) {
+            throw error;
+          }
+
+          const response = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: data.session?.access_token || '',
+              user_email: data.user?.email || email,
+              email
+            })
+          });
+
+          const responseData = await response.json();
+          if (!response.ok || !responseData.ok) {
+            throw new Error(responseData.error || 'Unable to create a local session.');
+          }
+
+          window.location.href = responseData.redirect || '/';
+        } catch (error) {
+          authError.textContent = error.message || 'Unable to sign in.';
+        }
+      });
+    </script>
+  </body>
+</html>

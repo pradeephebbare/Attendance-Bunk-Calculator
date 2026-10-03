@@ -51,6 +51,14 @@
           </label>
           <button id="sampleDataBtn" class="ghost-btn">Load sample data</button>
         </div>
+
+        <div class="panel">
+          <div class="panel-label">Account</div>
+          <div class="account-box">
+            <div class="account-email">{{ user_email }}</div>
+            <a href="{{ url_for('logout') }}" class="logout-link">Log out</a>
+          </div>
+        </div>
       </aside>
 
       <main class="main-content">

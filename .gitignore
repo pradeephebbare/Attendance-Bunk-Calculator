@@ -1,0 +1,11 @@
+# Python cache and virtual env
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Local environment secrets
+.env
+
+# Editor files
+.vscode/

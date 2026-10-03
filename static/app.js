@@ -8,7 +8,7 @@ const sampleSubjects = [
 const state = {
   target: 75,
   theme: 'dark',
-  subjects: [...sampleSubjects],
+  subjects: [],
 };
 
 const chartPalette = {
