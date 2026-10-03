@@ -1,12 +1,11 @@
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
 import io
-import math
 from datetime import date
 
-# ─── Page Config ──────────────────────────────────────────────────────────────
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+# ─── App Setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="BunkMeter",
     page_icon="🎓",
@@ -14,126 +13,195 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── CSS ──────────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap');
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
-html, body, [class*="css"] { font-family: 'Outfit', sans-serif; }
+    :root {
+        --bg: #07111f;
+        --bg-2: #0b1628;
+        --panel: rgba(10, 18, 30, 0.92);
+        --panel-strong: rgba(12, 22, 36, 0.98);
+        --line: rgba(148, 163, 184, 0.15);
+        --text: #e6edf9;
+        --muted: #98a9c6;
+        --primary: #5eead4;
+        --primary-2: #60a5fa;
+        --danger: #fb7185;
+        --warn: #fbbf24;
+        --safe: #4ade80;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.38);
+    }
 
-.stApp { background: #060610; color: #dde0f0; }
+    html, body, [class*="css"] {
+        font-family: 'Outfit', sans-serif;
+        background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 30%),
+                    radial-gradient(circle at top right, rgba(94, 234, 212, 0.18), transparent 30%),
+                    linear-gradient(180deg, #050b14 0%, #091827 100%);
+        color: var(--text);
+    }
 
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background: #0c0c1e !important;
-    border-right: 1px solid #1a1a35;
-}
+    .stApp {
+        background: transparent;
+    }
 
-h1,h2,h3 { font-family: 'Outfit', sans-serif; font-weight: 800; }
+    section[data-testid="stSidebar"] {
+        background: rgba(7, 15, 24, 0.9) !important;
+        border-right: 1px solid var(--line);
+        box-shadow: inset -1px 0 0 rgba(148,163,184,0.06);
+    }
 
-.tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: #404068;
-    margin-bottom: 0.4rem;
-}
+    .main .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+    }
 
-/* KPI Cards */
-.kpi {
-    background: #0e0e20;
-    border: 1px solid #1e1e38;
-    border-radius: 14px;
-    padding: 1.2rem 1.4rem;
-    position: relative;
-    overflow: hidden;
-}
-.kpi-accent { position:absolute; top:0;left:0;right:0;height:3px; border-radius:14px 14px 0 0; }
-.kpi-val { font-size: 2.2rem; font-weight: 800; line-height: 1; margin: 0.2rem 0; }
-.kpi-sub { font-size: 0.78rem; color: #555580; margin-top: 0.2rem; }
+    h1, h2, h3, h4 {
+        color: var(--text) !important;
+        letter-spacing: -0.04em;
+        font-weight: 800 !important;
+    }
 
-/* Subject cards */
-.sub-card {
-    background: #0e0e20;
-    border: 1px solid #1e1e38;
-    border-radius: 14px;
-    padding: 1.1rem 1.3rem;
-    margin-bottom: 0.7rem;
-}
-.sub-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
-.sub-name { font-weight: 700; font-size: 1rem; }
-.pill {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 0.2rem 0.65rem;
-    border-radius: 999px;
-    letter-spacing: 0.1em;
-}
-.pill-safe   { background:#00ff9020; color:#00ff90; border:1px solid #00ff9040; }
-.pill-warn   { background:#ffb30020; color:#ffb300; border:1px solid #ffb30040; }
-.pill-danger { background:#ff335520; color:#ff3355; border:1px solid #ff335540; }
+    .section-kicker {
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+        margin-bottom: 0.7rem;
+    }
 
-.bar-bg { background:#181830; border-radius:999px; height:10px; margin:0.4rem 0; overflow:hidden; }
-.bar-fill { height:100%; border-radius:999px; }
+    .glass-panel {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(10, 17, 29, 0.96));
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 1.1rem 1.2rem;
+        box-shadow: var(--shadow);
+    }
 
-.stat-row { display:flex; gap:1.5rem; margin-top:0.5rem; }
-.stat-item { font-size:0.8rem; }
-.stat-label { color:#404068; font-size:0.7rem; font-family:'JetBrains Mono',monospace; text-transform:uppercase; }
+    [data-testid="stMetricValue"] {
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        color: var(--text) !important;
+    }
 
-.divider { border:none; border-top:1px solid #1a1a30; margin:1.2rem 0; }
+    .stButton > button {
+        background: linear-gradient(135deg, #60a5fa, #5eead4) !important;
+        color: #05131e !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        padding: 0.7rem 1.2rem !important;
+        box-shadow: 0 12px 28px rgba(96, 165, 250, 0.25);
+    }
 
-.stButton>button {
-    background: linear-gradient(135deg,#2d6fff,#00c9ff) !important;
-    color:#fff !important; border:none !important;
-    border-radius:8px !important;
-    font-family:'Outfit',sans-serif !important;
-    font-weight:700 !important;
-    padding: 0.5rem 1.3rem !important;
-}
-.stButton>button:hover { opacity:0.85 !important; }
+    .stButton > button:hover {
+        opacity: 0.96 !important;
+        transform: translateY(-1px);
+    }
 
-.upload-hint {
-    background:#0a0a1e;
-    border:1px dashed #2a2a50;
-    border-radius:12px;
-    padding:1.2rem;
-    text-align:center;
-    color:#404068;
-    font-size:0.85rem;
-    margin-bottom:1rem;
-}
+    .stDownloadButton > button {
+        width: 100%;
+        background: rgba(96, 165, 250, 0.09) !important;
+        border: 1px solid rgba(96, 165, 250, 0.28) !important;
+        color: var(--text) !important;
+        border-radius: 12px !important;
+    }
 
-.tip {
-    background:#0a1525;
-    border-left: 3px solid #2d6fff;
-    border-radius:0 8px 8px 0;
-    padding:0.7rem 1rem;
-    font-size:0.82rem;
-    color:#6090c0;
-    margin-top:0.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+        border: 1px solid rgba(255,255,255,0.12);
+    }
 
+    .pill-safe { background: rgba(74, 222, 128, 0.12); color: var(--safe); border-color: rgba(74, 222, 128, 0.32); }
+    .pill-warn { background: rgba(251, 191, 36, 0.12); color: var(--warn); border-color: rgba(251, 191, 36, 0.32); }
+    .pill-danger { background: rgba(251, 113, 133, 0.12); color: var(--danger); border-color: rgba(251, 113, 133, 0.32); }
 
-# ─── Core Logic (your bunk_calc) ──────────────────────────────────────────────
+    .subject-card {
+        background: linear-gradient(180deg, rgba(11, 20, 35, 0.9), rgba(9, 16, 27, 0.85));
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 18px;
+        padding: 1rem 1rem 0.8rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 10px 20px rgba(2, 6, 23, 0.1);
+    }
+
+    .subject-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.8rem;
+    }
+
+    .subject-name {
+        font-size: 1.08rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .percent-big {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+    }
+
+    .mini-bar {
+        width: 100%;
+        height: 10px;
+        background: rgba(148, 163, 184, 0.12);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 0.4rem 0 0.6rem;
+    }
+
+    .mini-bar > div {
+        height: 100%;
+        border-radius: inherit;
+    }
+
+    .muted-text {
+        color: var(--muted);
+        font-size: 0.8rem;
+    }
+
+    .metric-callout {
+        background: rgba(96, 165, 250, 0.08);
+        border: 1px solid rgba(96, 165, 250, 0.2);
+        border-radius: 14px;
+        padding: 0.65rem 0.8rem;
+        margin-top: 0.35rem;
+        color: var(--muted);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ─── Core Logic (same as requested) ───────────────────────────────────────────
 TARGET = 75
+
 
 def bunk_calc(total, attended):
     if total == 0:
         return None
     pct = (attended / total) * 100
 
-    # Safe skips — your fixed loop
     bunk_count = 0
     future_total = total + 1
     while (attended / future_total) * 100 >= TARGET:
         bunk_count += 1
         future_total += 1
 
-    # Classes needed to recover
     extra = 0
     ft, fa = total, attended
     while (fa / ft) * 100 < TARGET:
@@ -150,320 +218,351 @@ def bunk_calc(total, attended):
     }
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-STATUS_COLOR = {"safe": "#00ff90", "warn": "#ffb300", "danger": "#ff3355"}
-STATUS_LABEL = {"safe": "SAFE ✓", "warn": "BORDERLINE", "danger": "SHORTAGE ✗"}
-BAR_GRADIENT = {
-    "safe":   "linear-gradient(90deg,#00ff90,#00c9ff)",
-    "warn":   "linear-gradient(90deg,#ffb300,#ff6d00)",
-    "danger": "linear-gradient(90deg,#ff3355,#c000ff)",
+STATUS_META = {
+    "safe": {"label": "Safe", "color": "#4ade80", "bg": "rgba(74, 222, 128, 0.12)"},
+    "warn": {"label": "Borderline", "color": "#fbbf24", "bg": "rgba(251, 191, 36, 0.12)"},
+    "danger": {"label": "Shortage", "color": "#fb7185", "bg": "rgba(251, 113, 133, 0.12)"},
 }
 
-def pill_html(status):
-    return f'<span class="pill pill-{status}">{STATUS_LABEL[status]}</span>'
 
-def bar_html(pct, status):
-    w = min(max(pct, 0), 100)
-    return f"""<div class="bar-bg"><div class="bar-fill" style="width:{w}%;background:{BAR_GRADIENT[status]};"></div></div>"""
+def safe_title(value):
+    return "Safe" if value >= TARGET + 5 else ("Borderline" if value >= TARGET else "Shortage")
+
+
+def subject_row_to_dict(row):
+    if row is None:
+        return None
+    subject = str(row.get("subject", "")).strip()
+    total = int(row.get("total", 0) or 0)
+    attended = int(row.get("attended", 0) or 0)
+    if not subject or total <= 0:
+        return None
+    return {"subject": subject, "total": total, "attended": attended}
+
+
+def render_subject_cards(results):
+    for item in results:
+        color = STATUS_META[item["status"]]["color"]
+        width = min(max(item["pct"], 0), 100)
+        if item["safe_skips"] > 0:
+            message = f"You can skip <b>{item['safe_skips']}</b> more class{'es' if item['safe_skips'] != 1 else ''} safely."
+        else:
+            message = f"Attend <b>{item['classes_needed']}</b> consecutive class{'es' if item['classes_needed'] != 1 else ''} to recover."
+
+        st.markdown(
+            f"""
+            <div class="subject-card">
+                <div class="subject-header">
+                    <div class="subject-name">{item['subject']}</div>
+                    <span class="status-pill pill-{item['status']}">{STATUS_META[item['status']]['label']}</span>
+                </div>
+                <div class="percent-big" style="color: {color};">{item['pct']}%</div>
+                <div class="mini-bar"><div style="width: {width}%; background: linear-gradient(90deg, {color}, #60a5fa);"></div></div>
+                <div class="muted-text">{item['attended']} attended / {item['total']} total &nbsp;&nbsp;•&nbsp;&nbsp; target {TARGET}%</div>
+                <div class="metric-callout">{message}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🎓 BunkMeter")
-    st.markdown("*How many can you really skip?*")
+    st.markdown("<div class='section-kicker'>College Attendance Predictor</div>", unsafe_allow_html=True)
+    st.markdown("<div class='muted-text'>Plan your skips, protect your attendance, and stay above the target.</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    TARGET = st.slider("Minimum required %", 50, 90, 75, step=5)
+
+    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    mode = st.radio("Input mode", ["Manual Entry", "Upload File"], horizontal=True)
+
     st.markdown("---")
-
-    min_pct = st.slider("Minimum Required %", 50, 85, 75, step=5)
-    TARGET = min_pct
-
-    st.markdown("---")
-    mode = st.radio("Input Mode", ["✏️ Manual Entry", "📂 Upload File"])
-
-    st.markdown("---")
-    st.markdown("""
-    <div style='font-size:0.72rem;color:#303055;font-family:JetBrains Mono,monospace;line-height:1.8;'>
-    FORMULA<br>
-    safe_skips = loop until<br>
-    &nbsp;&nbsp;att/(total+n) &lt; 75%<br><br>
-    needed = loop until<br>
-    &nbsp;&nbsp;(att+n)/(tot+n) ≥ 75%
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class='muted-text'>
+            Safe skips = keep increasing future total until<br>
+            attendance % falls below the target.<br><br>
+            Needed classes = keep adding future classes until<br>
+            the attendance reaches the required threshold.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-# ─── Header ───────────────────────────────────────────────────────────────────
+# ─── Main Header ───────────────────────────────────────────────────────────────
 st.markdown("# BunkMeter 🎓")
-st.markdown('<p style="color:#303055;font-family:JetBrains Mono,monospace;font-size:0.8rem;margin-top:-0.8rem;">COLLEGE ATTENDANCE PREDICTOR — LEVEL 3</p>', unsafe_allow_html=True)
+st.markdown("<div class='section-kicker'>Smart attendance planner</div>", unsafe_allow_html=True)
 
-subjects = []
+# ─── Default Data ──────────────────────────────────────────────────────────────
+if "rows" not in st.session_state:
+    st.session_state.rows = [
+        {"subject": "Mathematics", "attended": 45, "total": 56},
+        {"subject": "Physics", "attended": 28, "total": 40},
+        {"subject": "Chemistry", "attended": 32, "total": 38},
+    ]
 
-# ─── Manual Entry ─────────────────────────────────────────────────────────────
-if mode == "✏️ Manual Entry":
-    if "rows" not in st.session_state:
-        st.session_state.rows = [
-            {"subject": "Mathematics", "attended": 45, "total": 56},
-            {"subject": "Physics",     "attended": 28, "total": 40},
-            {"subject": "Chemistry",   "attended": 32, "total": 38},
-        ]
+# ─── Manual Input ─────────────────────────────────────────────────────────────
+if mode == "Manual Entry":
+    st.markdown("<div class='section-kicker'>Add / edit subjects</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="tag">Add / Edit Subjects</div>', unsafe_allow_html=True)
+    with st.form("add_subject_form"):
+        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
+        with c1:
+            subject_name = st.text_input("Subject", placeholder="Enter subject name", label_visibility="collapsed")
+        with c2:
+            attended_value = st.number_input("Attended", min_value=0, max_value=500, value=0, step=1, label_visibility="collapsed")
+        with c3:
+            total_value = st.number_input("Total", min_value=1, max_value=500, value=30, step=1, label_visibility="collapsed")
+        with c4:
+            st.markdown("<br>", unsafe_allow_html=True)
+            add_submitted = st.form_submit_button("Add")
 
-    c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-    with c1: nn = st.text_input("Subject", placeholder="e.g. Data Structures", key="nn")
-    with c2: na = st.number_input("Attended", 0, 300, 0, key="na")
-    with c3: nt = st.number_input("Total",    1, 300, 30, key="nt")
-    with c4:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("＋ Add") and nn.strip():
-            st.session_state.rows.append({"subject": nn.strip(), "attended": na, "total": nt})
+        if add_submitted and subject_name.strip():
+            st.session_state.rows.append({
+                "subject": subject_name.strip(),
+                "attended": int(attended_value),
+                "total": int(total_value),
+            })
             st.rerun()
 
-    to_del = None
-    for i, row in enumerate(st.session_state.rows):
-        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-        with c1: st.session_state.rows[i]["subject"]  = st.text_input("", value=row["subject"],  key=f"s{i}", label_visibility="collapsed")
-        with c2: st.session_state.rows[i]["attended"] = st.number_input("", 0, 300, row["attended"], key=f"a{i}", label_visibility="collapsed")
-        with c3: st.session_state.rows[i]["total"]    = st.number_input("", 1, 300, row["total"],    key=f"t{i}", label_visibility="collapsed")
-        with c4:
-            if st.button("✕", key=f"d{i}"): to_del = i
-    if to_del is not None:
-        st.session_state.rows.pop(to_del)
-        st.rerun()
+    if st.session_state.rows:
+        df = pd.DataFrame(st.session_state.rows)
+        edited_df = st.data_editor(
+            df,
+            width="stretch",
+            hide_index=True,
+            num_rows="dynamic",
+            column_config={
+                "subject": st.column_config.TextColumn("Subject", width="large"),
+                "attended": st.column_config.NumberColumn("Attended", min_value=0, max_value=500, step=1),
+                "total": st.column_config.NumberColumn("Total", min_value=1, max_value=500, step=1),
+            },
+        )
+        cleaned = edited_df.where(pd.notna(edited_df), None)
+        cleaned = cleaned.dropna(how="all")
+        if not cleaned.empty:
+            st.session_state.rows = cleaned.to_dict("records")
+        else:
+            st.session_state.rows = []
 
-    subjects = st.session_state.rows
+    subjects = [subject_row_to_dict(row) for row in st.session_state.rows]
+    subjects = [s for s in subjects if s is not None]
 
-# ─── Upload Mode ──────────────────────────────────────────────────────────────
+# ─── Upload File ──────────────────────────────────────────────────────────────
 else:
-    st.markdown("""
-    <div class="upload-hint">
-        Upload a CSV or Excel file with columns: <b>Subject, Attended, Total</b>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class='glass-panel' style='margin-bottom: 1rem; text-align: center; color: #98a9c6;'>
+            Upload a CSV or Excel file with columns: <b>Subject, Attended, Total</b>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Template download
-    tpl = pd.DataFrame({"Subject": ["Mathematics","Physics","Chemistry"],
-                        "Attended": [45, 28, 32], "Total": [56, 40, 38]})
-    buf = io.BytesIO()
-    tpl.to_excel(buf, index=False)
-    st.download_button("⬇ Download Template", buf.getvalue(),
-                       "template.xlsx",
-                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    template = pd.DataFrame(
+        {
+            "Subject": ["Mathematics", "Physics", "Chemistry"],
+            "Attended": [45, 28, 32],
+            "Total": [56, 40, 38],
+        }
+    )
+    template_buffer = io.BytesIO()
+    template.to_excel(template_buffer, index=False)
+    st.download_button(
+        "Download template",
+        template_buffer.getvalue(),
+        "attendance_template.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
-    f = st.file_uploader("", type=["csv","xlsx"], label_visibility="collapsed")
-    if f:
+    uploaded_file = st.file_uploader("Upload file", type=["csv", "xlsx"], label_visibility="collapsed")
+    subjects = []
+    if uploaded_file is not None:
         try:
-            df = pd.read_csv(f) if f.name.endswith(".csv") else pd.read_excel(f)
-            df.columns = [c.strip().lower() for c in df.columns]
-            rename = {}
-            for c in df.columns:
-                if "sub" in c: rename[c] = "subject"
-                if "att" in c: rename[c] = "attended"
-                if "tot" in c: rename[c] = "total"
-            df = df.rename(columns=rename)
-            subjects = df[["subject","attended","total"]].to_dict("records")
-            st.success(f"✓ Loaded {len(subjects)} subjects")
-        except Exception as e:
-            st.error(f"Error: {e}")
+            df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
+            df.columns = [str(col).strip().lower() for col in df.columns]
+            rename_map = {}
+            for col in df.columns:
+                if "sub" in col:
+                    rename_map[col] = "subject"
+                if "att" in col:
+                    rename_map[col] = "attended"
+                if "tot" in col:
+                    rename_map[col] = "total"
+            df = df.rename(columns=rename_map)
+            if {"subject", "attended", "total"}.issubset(df.columns):
+                raw_subjects = df[["subject", "attended", "total"]].to_dict("records")
+                subjects = [subject_row_to_dict(row) for row in raw_subjects]
+                subjects = [s for s in subjects if s is not None]
+                st.success(f"Loaded {len(subjects)} subject(s) from the uploaded file.")
+            else:
+                st.error("Upload file must contain Subject, Attended, and Total columns.")
+        except Exception as exc:
+            st.error(f"Unable to read the uploaded file: {exc}")
 
-
-# ─── Results ──────────────────────────────────────────────────────────────────
+# ─── Results Dashboard ─────────────────────────────────────────────────────────
 if subjects:
     results = []
-    for s in subjects:
-        r = bunk_calc(s["total"], s["attended"])
-        if r:
-            results.append({**s, **r})
+    for row in subjects:
+        calc = bunk_calc(row["total"], row["attended"])
+        if calc is not None:
+            results.append({**row, **calc})
 
     if not results:
-        st.warning("No valid data to analyse.")
+        st.warning("No valid attendance data found.")
         st.stop()
 
-    # ── KPI Row ───────────────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown('<div class="tag">Overview</div>', unsafe_allow_html=True)
+    total_attended = sum(item["attended"] for item in results)
+    total_classes = sum(item["total"] for item in results)
+    overall_pct = round((total_attended / total_classes) * 100, 2) if total_classes else 0
+    overall_status = safe_title(overall_pct)
+    overall_color = STATUS_META["safe" if overall_status == "Safe" else "warn" if overall_status == "Borderline" else "danger"]["color"]
 
-    total_att = sum(r["attended"] for r in results)
-    total_cls = sum(r["total"]    for r in results)
-    overall   = round(total_att / total_cls * 100, 2) if total_cls else 0
-    ov_status = "safe" if overall >= TARGET + 5 else ("warn" if overall >= TARGET else "danger")
-    ov_color  = STATUS_COLOR[ov_status]
+    safe_count = sum(1 for item in results if item["status"] == "safe")
+    warn_count = sum(1 for item in results if item["status"] == "warn")
+    danger_count = sum(1 for item in results if item["status"] == "danger")
+    total_skips = sum(item["safe_skips"] for item in results)
+    total_needed = sum(item["classes_needed"] for item in results)
 
-    danger_n = sum(1 for r in results if r["status"] == "danger")
-    warn_n   = sum(1 for r in results if r["status"] == "warn")
-    total_skips = sum(r["safe_skips"] for r in results)
-    total_needed = sum(r["classes_needed"] for r in results)
-
+    st.markdown("<div class='section-kicker'>Overview</div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        st.markdown(f"""<div class="kpi">
-            <div class="kpi-accent" style="background:{ov_color};"></div>
-            <div class="tag">Overall Attendance</div>
-            <div class="kpi-val" style="color:{ov_color};">{overall}%</div>
-            <div class="kpi-sub">{total_att} of {total_cls} classes</div>
-        </div>""", unsafe_allow_html=True)
+        st.metric("Overall attendance", f"{overall_pct}%", delta=f"{overall_status}")
     with k2:
-        sk_color = "#00ff90" if total_skips > 0 else "#ff3355"
-        st.markdown(f"""<div class="kpi">
-            <div class="kpi-accent" style="background:{sk_color};"></div>
-            <div class="tag">Total Safe Skips</div>
-            <div class="kpi-val" style="color:{sk_color};">{total_skips}</div>
-            <div class="kpi-sub">across all subjects</div>
-        </div>""", unsafe_allow_html=True)
+        st.metric("Safe skips", total_skips, delta="across all subjects")
     with k3:
-        nd_color = "#ff3355" if total_needed > 0 else "#00ff90"
-        st.markdown(f"""<div class="kpi">
-            <div class="kpi-accent" style="background:{nd_color};"></div>
-            <div class="tag">Classes Still Needed</div>
-            <div class="kpi-val" style="color:{nd_color};">{total_needed}</div>
-            <div class="kpi-sub">to reach {TARGET}% in weak subjects</div>
-        </div>""", unsafe_allow_html=True)
+        st.metric("Classes needed", total_needed, delta=f"to reach {TARGET}%")
     with k4:
-        st.markdown(f"""<div class="kpi">
-            <div class="kpi-accent" style="background:#2d6fff;"></div>
-            <div class="tag">Subjects Tracked</div>
-            <div class="kpi-val" style="color:#2d6fff;">{len(results)}</div>
-            <div class="kpi-sub">{danger_n} shortage · {warn_n} borderline</div>
-        </div>""", unsafe_allow_html=True)
+        st.metric("Subjects", len(results), delta=f"{danger_count} shortage / {warn_count} borderline")
 
-    # ── Charts ────────────────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown('<div class="tag">Charts</div>', unsafe_allow_html=True)
+    st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
 
     col_chart, col_pie = st.columns([3, 2])
-
     with col_chart:
-        # Bar chart — attendance % per subject
-        names  = [r["subject"]  for r in results]
-        pcts   = [r["pct"]      for r in results]
-        colors = [STATUS_COLOR[r["status"]] for r in results]
+        names = [item["subject"] for item in results]
+        values = [item["pct"] for item in results]
+        bar_colors = [STATUS_META[item["status"]]["color"] for item in results]
 
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            x=names, y=pcts,
-            marker_color=colors,
-            marker_line_width=0,
-            text=[f"{p}%" for p in pcts],
-            textposition="outside",
-            textfont=dict(family="JetBrains Mono", size=11, color="#dde0f0"),
-        ))
-        fig_bar.add_hline(y=TARGET, line_dash="dot", line_color="rgba(255,255,255,0.3)",
-                          annotation_text=f"{TARGET}% required",
-                          annotation_font_color="rgba(255,255,255,0.5)",
-                          annotation_font_size=10)
-        fig_bar.update_layout(
-            title=dict(text="Attendance % by Subject", font=dict(family="Outfit", size=14, color="#7070a0")),
-            paper_bgcolor="#0e0e20", plot_bgcolor="#0e0e20",
-            font=dict(family="Outfit", color="#7070a0"),
-            xaxis=dict(showgrid=False, tickfont=dict(size=11)),
-            yaxis=dict(showgrid=True, gridcolor="#1a1a30", range=[0, 110]),
-            margin=dict(t=40, b=20, l=10, r=10),
-            showlegend=False,
-            height=300,
+        fig = go.Figure()
+        fig.add_trace(
+            go.Bar(
+                x=names,
+                y=values,
+                marker=dict(color=bar_colors, line=dict(color="rgba(255,255,255,0.08)", width=1)),
+                text=[f"{v}%" for v in values],
+                textposition="outside",
+                textfont=dict(color="#e6edf9", size=11, family="JetBrains Mono"),
+            )
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        fig.add_hline(
+            y=TARGET,
+            line_dash="dot",
+            line_color="rgba(255,255,255,0.42)",
+            annotation_text=f"{TARGET}% required",
+            annotation_font_color="rgba(255,255,255,0.7)",
+            annotation_font_size=10,
+        )
+        fig.update_layout(
+            paper_bgcolor="#0b1628",
+            plot_bgcolor="#0b1628",
+            font=dict(family="Outfit", color="#ccd8ee"),
+            margin=dict(t=30, r=20, b=20, l=10),
+            height=330,
+            xaxis=dict(showgrid=False, tickfont=dict(size=11)),
+            yaxis=dict(showgrid=True, gridcolor="rgba(148,163,184,0.12)", range=[0, 110]),
+            showlegend=False,
+        )
+        st.plotly_chart(fig, width="stretch")
 
     with col_pie:
-        # Pie — safe vs borderline vs shortage
-        safe_n = sum(1 for r in results if r["status"] == "safe")
-        pie_vals   = [safe_n, warn_n, danger_n]
-        pie_labels = ["Safe", "Borderline", "Shortage"]
-        pie_colors = ["#00ff90", "#ffb300", "#ff3355"]
-
-        fig_pie = go.Figure(go.Pie(
-            labels=pie_labels, values=pie_vals,
-            marker=dict(colors=pie_colors, line=dict(color="#060610", width=3)),
-            textfont=dict(family="JetBrains Mono", size=11),
-            hole=0.55,
-        ))
-        fig_pie.update_layout(
-            title=dict(text="Subject Status Split", font=dict(family="Outfit", size=14, color="#7070a0")),
-            paper_bgcolor="#0e0e20",
-            font=dict(family="Outfit", color="#7070a0"),
-            legend=dict(font=dict(size=11)),
-            margin=dict(t=40, b=10, l=10, r=10),
-            height=300,
+        fig_pie = go.Figure(
+            go.Pie(
+                labels=["Safe", "Borderline", "Shortage"],
+                values=[safe_count, warn_count, danger_count],
+                hole=0.55,
+                marker=dict(colors=["#4ade80", "#fbbf24", "#fb7185"], line=dict(color="#0b1628", width=3)),
+                textinfo="label+percent",
+                textfont=dict(color="#e6edf9", family="JetBrains Mono", size=12),
+            )
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        fig_pie.update_layout(
+            paper_bgcolor="#0b1628",
+            margin=dict(t=30, r=10, b=10, l=10),
+            legend=dict(font=dict(size=11)),
+            height=330,
+            font=dict(family="Outfit", color="#ccd8ee"),
+        )
+        st.plotly_chart(fig_pie, width="stretch")
 
-    # Skips vs Needed bar chart
-    fig_skip = go.Figure()
-    fig_skip.add_trace(go.Bar(
-        name="Safe Skips", x=names,
-        y=[r["safe_skips"] for r in results],
-        marker_color="#00ff90", marker_line_width=0,
-    ))
-    fig_skip.add_trace(go.Bar(
-        name="Classes Needed", x=names,
-        y=[r["classes_needed"] for r in results],
-        marker_color="#ff3355", marker_line_width=0,
-    ))
-    fig_skip.update_layout(
-        title=dict(text="Safe Skips vs Classes Needed per Subject", font=dict(family="Outfit", size=14, color="#7070a0")),
+    st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-kicker'>Insights</div>", unsafe_allow_html=True)
+    skip_fig = go.Figure()
+    skip_fig.add_trace(go.Bar(name="Safe skips", x=[item["subject"] for item in results], y=[item["safe_skips"] for item in results], marker_color="#4ade80"))
+    skip_fig.add_trace(go.Bar(name="Classes needed", x=[item["subject"] for item in results], y=[item["classes_needed"] for item in results], marker_color="#fb7185"))
+    skip_fig.update_layout(
         barmode="group",
-        paper_bgcolor="#0e0e20", plot_bgcolor="#0e0e20",
-        font=dict(family="Outfit", color="#7070a0"),
+        paper_bgcolor="#0b1628",
+        plot_bgcolor="#0b1628",
+        margin=dict(t=25, r=10, b=20, l=10),
+        height=300,
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#1a1a30"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(148,163,184,0.12)"),
         legend=dict(font=dict(size=11)),
-        margin=dict(t=40, b=20, l=10, r=10),
-        height=280,
+        font=dict(family="Outfit", color="#ccd8ee"),
     )
-    st.plotly_chart(fig_skip, use_container_width=True)
+    st.plotly_chart(skip_fig, width="stretch")
 
-    # ── Subject Dashboard ──────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown('<div class="tag">Subject Dashboard</div>', unsafe_allow_html=True)
+    st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-kicker'>Subject dashboard</div>", unsafe_allow_html=True)
+    render_subject_cards(results)
 
-    for r in results:
-        color = STATUS_COLOR[r["status"]]
-        skip_msg = (f"🟢 You can skip <b>{r['safe_skips']}</b> more class{'es' if r['safe_skips']!=1 else ''} safely"
-                    if r["safe_skips"] > 0
-                    else f"🔴 Attend <b>{r['classes_needed']}</b> consecutive class{'es' if r['classes_needed']!=1 else ''} to recover")
-
-        st.markdown(f"""
-        <div class="sub-card">
-            <div class="sub-header">
-                <span class="sub-name">{r['subject']}</span>
-                {pill_html(r['status'])}
-            </div>
-            <div style="font-size:1.8rem;font-weight:800;color:{color};line-height:1;">{r['pct']}%</div>
-            {bar_html(r['pct'], r['status'])}
-            <div style="font-size:0.75rem;color:#303055;font-family:JetBrains Mono,monospace;margin-bottom:0.5rem;">
-                {r['attended']} attended / {r['total']} total &nbsp;·&nbsp; need {TARGET}%
-            </div>
-            <div style="font-size:0.85rem;color:#c0c8e8;">{skip_msg}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── Export ────────────────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown('<div class="tag">Export Report</div>', unsafe_allow_html=True)
-
-    export_df = pd.DataFrame([{
-        "Subject":        r["subject"],
-        "Attended":       r["attended"],
-        "Total":          r["total"],
-        "Attendance %":   r["pct"],
-        "Safe Skips":     r["safe_skips"],
-        "Classes Needed": r["classes_needed"],
-        "Status":         STATUS_LABEL[r["status"]],
-        "Date":           str(date.today()),
-    } for r in results])
+    st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-kicker'>Export report</div>", unsafe_allow_html=True)
+    export_df = pd.DataFrame(
+        [
+            {
+                "Subject": item["subject"],
+                "Attended": item["attended"],
+                "Total": item["total"],
+                "Attendance %": item["pct"],
+                "Safe Skips": item["safe_skips"],
+                "Classes Needed": item["classes_needed"],
+                "Status": STATUS_META[item["status"]]["label"],
+                "Date": str(date.today()),
+            }
+            for item in results
+        ]
+    )
 
     c1, c2 = st.columns(2)
     with c1:
-        st.download_button("⬇ Download CSV", export_df.to_csv(index=False).encode(),
-                           "bunkmeter_report.csv", "text/csv")
+        st.download_button(
+            "Download CSV",
+            export_df.to_csv(index=False).encode(),
+            "bunkmeter_report.csv",
+            "text/csv",
+        )
     with c2:
-        xl = io.BytesIO()
-        export_df.to_excel(xl, index=False)
-        st.download_button("⬇ Download Excel", xl.getvalue(),
-                           "bunkmeter_report.xlsx",
-                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        xl_buffer = io.BytesIO()
+        export_df.to_excel(xl_buffer, index=False)
+        st.download_button(
+            "Download Excel",
+            xl_buffer.getvalue(),
+            "bunkmeter_report.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 else:
-    st.markdown("""
-    <div style="text-align:center;padding:3rem;color:#303055;">
-        <div style="font-size:3rem;">📊</div>
-        <div style="font-weight:700;font-size:1.1rem;margin-top:0.5rem;">No data yet</div>
-        <div style="font-size:0.85rem;margin-top:0.3rem;">Add subjects manually or upload a file to get started.</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style='text-align:center; padding: 3rem 1rem; color: #98a9c6;'>
+            <div style='font-size: 3rem;'>📊</div>
+            <div style='font-size: 1.3rem; font-weight: 700; margin-top: 0.8rem;'>No subject data yet</div>
+            <div style='margin-top: 0.4rem; font-size: 0.9rem;'>Add subjects manually or upload a file to begin tracking attendance.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
